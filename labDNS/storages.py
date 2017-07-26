@@ -30,8 +30,9 @@ class DictStorage(BaseStorage):
 class RedisStorage(BaseStorage):
     DEFAULT_SETTINGS = dict(host='localhost', port=6379, db=0)
 
-    def __init__(self, config):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
         self.redis = redis.StrictRedis(**self.config)
 
     def get(self, key, default=None):
-        return self.redis.get(key, default)
+        return self.redis.get(key).decode("utf-8") or default
