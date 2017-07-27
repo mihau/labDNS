@@ -35,4 +35,5 @@ class RedisStorage(BaseStorage):
         self.redis = redis.StrictRedis(**self.config)
 
     def get(self, key, default=None):
-        return self.redis.get(key).decode("utf-8") or default
+        value = self.redis.get(key)
+        return value.decode("utf-8") if value else default
