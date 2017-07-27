@@ -10,7 +10,10 @@ class DatabaseLookupResolver:
 
     def resolve(self, request, handler):
         reply = request.reply()
-        key = self.keymaker(request) if self.keymaker else str(request.q.qname)
+        key = (
+            self.keymaker(request, handler) if self.keymaker
+            else str(request.q.qname)
+        )
         address = self.storage.get(key)
         if address is not None:
             reply.add_answer(
@@ -23,6 +26,7 @@ def main():
     import argparse
     import json
     import time
+    from importlib import import_module
 
     from dnslib.server import DNSLogger, DNSServer
 
@@ -41,6 +45,7 @@ def main():
     parser.add_argument("--log", "-l", default="request,reply,truncated,error")
     parser.add_argument("--port", "-p", default=53, type=int)
     parser.add_argument("--address", "-a", default="localhost")
+    parser.add_argument("--keymaker", "-k", default=None)
 
     args = parser.parse_args()
 
@@ -51,7 +56,11 @@ def main():
     elif args.storage == 'dict':
         storage = DictStorage(config)
 
-    resolver = DatabaseLookupResolver(storage, args.zone, ttl=args.ttl)
+    keymaker = import_module(args.keymaker).keymaker if args.keymaker else None
+
+    resolver = DatabaseLookupResolver(
+        storage, args.zone, ttl=args.ttl, keymaker=keymaker
+    )
     logger = DNSLogger(args.log)
 
     server = DNSServer(
