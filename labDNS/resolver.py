@@ -1,27 +1,43 @@
-from dnslib import RR, QTYPE, A
+import socket
+
+from dnslib import RR, QTYPE, A, DNSRecord, RCODE
 
 
 class DatabaseLookupResolver:
-    def __init__(self, storage, zone, keymaker=None, ttl=60):
+    def __init__(self, storage, zone, keymaker=None, ttl=60, upstream=None):
         self.storage = storage
         self.zone = zone
         self.keymaker = keymaker
         self.ttl = ttl
+        self.upstream = upstream
 
     def resolve(self, request, handler):
         reply = request.reply()
         qname = request.q.qname
-        if not qname.matchGlob(self.zone):
-            return reply
-        key = (
-            self.keymaker(request, handler) if self.keymaker
-            else str(qname)
-        )
-        address = self.storage.get(key)
-        if address is not None:
-            reply.add_answer(
-                RR(qname, QTYPE.A, rdata=A(address), ttl=self.ttl)
+        if qname.matchGlob(self.zone):
+            key = (
+                self.keymaker(request, handler) if self.keymaker
+                else str(qname)
             )
+            address = self.storage.get(key)
+            if address is not None:
+                reply.add_answer(
+                    RR(qname, QTYPE.A, rdata=A(address), ttl=self.ttl)
+                )
+
+        if self.upstream and not reply.rr:
+            try:
+                if handler.protocol == 'udp':
+                    proxy_r = request.send(
+                        self.upstream, port=53, timeout=60
+                    )
+                else:
+                    proxy_r = request.send(
+                        self.upstream, port=53, tcp=True, timeout=60
+                    )
+                reply = DNSRecord.parse(proxy_r)
+            except socket.timeout:
+                reply.header.rcode = getattr(RCODE, 'NXDOMAIN')
         return reply
 
 
@@ -49,6 +65,7 @@ def main():
     parser.add_argument("--port", "-p", default=53, type=int)
     parser.add_argument("--address", "-a", default="localhost")
     parser.add_argument("--keymaker", "-k", default=None)
+    parser.add_argument("--upstream", "-u", default=None)
 
     args = parser.parse_args()
 
@@ -62,7 +79,11 @@ def main():
     keymaker = import_module(args.keymaker).keymaker if args.keymaker else None
 
     resolver = DatabaseLookupResolver(
-        storage, args.zone, ttl=args.ttl, keymaker=keymaker
+        storage,
+        args.zone,
+        ttl=args.ttl,
+        keymaker=keymaker,
+        upstream=args.upstream,
     )
     logger = DNSLogger(args.log)
 
