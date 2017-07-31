@@ -10,14 +10,17 @@ class DatabaseLookupResolver:
 
     def resolve(self, request, handler):
         reply = request.reply()
+        qname = request.q.qname
+        if not qname.matchGlob(self.zone):
+            return reply
         key = (
             self.keymaker(request, handler) if self.keymaker
-            else str(request.q.qname)
+            else str(qname)
         )
         address = self.storage.get(key)
         if address is not None:
             reply.add_answer(
-                RR(self.zone, QTYPE.A, rdata=A(address), ttl=self.ttl)
+                RR(qname, QTYPE.A, rdata=A(address), ttl=self.ttl)
             )
         return reply
 
