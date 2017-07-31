@@ -2,6 +2,10 @@ try:
     import redis
 except ImportError:
     redis = None
+try:
+    import consul
+except ImportError:
+    consul = None
 
 
 class BaseStorage:
@@ -36,4 +40,15 @@ class RedisStorage(BaseStorage):
 
     def get(self, key, default=None):
         value = self.redis.get(key)
+        return value.decode("utf-8") if value else default
+
+
+class ConsulStorage(BaseStorage):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.consul = consul.Consul(**self.config)
+
+    def get(self, key, default=None):
+        index, data = self.consul.kv.get(key)
+        value = data['Value']
         return value.decode("utf-8") if value else default

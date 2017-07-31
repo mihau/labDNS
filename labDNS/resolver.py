@@ -49,14 +49,14 @@ def main():
 
     from dnslib.server import DNSLogger, DNSServer
 
-    from labDNS.storages import RedisStorage, DictStorage
+    from labDNS.storages import RedisStorage, ConsulStorage, DictStorage
 
     parser = argparse.ArgumentParser(
         description="Database lookup based DNS resolver"
     )
 
     parser.add_argument(
-        "--storage", "-s", default='dict', choices=['redis', 'dict']
+        "--storage", "-s", default='dict', choices=['redis', 'consul', 'dict']
     )
     parser.add_argument("--config", "-c", type=json.loads, default=dict())
     parser.add_argument("--zone", "-z")
@@ -73,6 +73,8 @@ def main():
 
     if args.storage == 'redis':
         storage = RedisStorage(config)
+    elif args.storage == 'consul':
+        storage = ConsulStorage(config)
     elif args.storage == 'dict':
         storage = DictStorage(config)
 
