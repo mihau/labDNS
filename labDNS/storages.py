@@ -48,7 +48,11 @@ class ConsulStorage(BaseStorage):
         super().__init__(*args, **kwargs)
         self.consul = consul.Consul(**self.config)
 
+    def _configure(self, config):
+        self.key_prefix = config.pop('key_prefix', None)
+        self.config.update(config)
+
     def get(self, key, default=None):
-        index, data = self.consul.kv.get(key)
+        index, data = self.consul.kv.get(self.key_prefix + key)
         value = data['Value']
         return value.decode("utf-8") if value else default

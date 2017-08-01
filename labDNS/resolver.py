@@ -5,13 +5,13 @@ from dnslib import RR, QTYPE, A, DNSRecord, RCODE
 
 class DatabaseLookupResolver:
     def __init__(self, storage, zone, keymaker=None, ttl=60, upstream=None,
-                 result_processor=None):
+                 processor=None):
         self.storage = storage
         self.zone = zone
         self.keymaker = keymaker
         self.ttl = ttl
         self.upstream = upstream
-        self.result_processor = result_processor
+        self.processor = processor
 
     def resolve(self, request, handler):
         reply = request.reply()
@@ -23,7 +23,7 @@ class DatabaseLookupResolver:
             )
             storage_result = self.storage.get(key)
             address = (
-                self.result_processor(storage_result) if self.result_processor
+                self.processor(storage_result) if self.processor
                 else storage_result
             )
             if address is not None:
