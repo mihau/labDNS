@@ -4,12 +4,14 @@ from dnslib import RR, QTYPE, A, DNSRecord, RCODE
 
 
 class DatabaseLookupResolver:
-    def __init__(self, storage, zone, keymaker=None, ttl=60, upstream=None):
+    def __init__(self, storage, zone, keymaker=None, ttl=60, upstream=None,
+                 result_processor=None):
         self.storage = storage
         self.zone = zone
         self.keymaker = keymaker
         self.ttl = ttl
         self.upstream = upstream
+        self.result_processor = result_processor
 
     def resolve(self, request, handler):
         reply = request.reply()
@@ -19,7 +21,11 @@ class DatabaseLookupResolver:
                 self.keymaker(request, handler) if self.keymaker
                 else str(qname)
             )
-            address = self.storage.get(key)
+            storage_result = self.storage.get(key)
+            address = (
+                self.result_processor(storage_result) if self.result_processor
+                else storage_result
+            )
             if address is not None:
                 reply.add_answer(
                     RR(qname, QTYPE.A, rdata=A(address), ttl=self.ttl)
@@ -65,6 +71,7 @@ def main():
     parser.add_argument("--port", "-p", default=53, type=int)
     parser.add_argument("--address", "-a", default="localhost")
     parser.add_argument("--keymaker", "-k", default=None)
+    parser.add_argument("--processor", default=None)
     parser.add_argument("--upstream", "-u", default=None)
 
     args = parser.parse_args()
@@ -79,6 +86,9 @@ def main():
         storage = DictStorage(config)
 
     keymaker = import_module(args.keymaker).keymaker if args.keymaker else None
+    processor = (
+        import_module(args.processor).processor if args.processor else None
+    )
 
     resolver = DatabaseLookupResolver(
         storage,
@@ -86,6 +96,7 @@ def main():
         ttl=args.ttl,
         keymaker=keymaker,
         upstream=args.upstream,
+        processor=processor,
     )
     logger = DNSLogger(args.log)
 
