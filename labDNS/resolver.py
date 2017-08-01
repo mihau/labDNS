@@ -18,7 +18,7 @@ class DatabaseLookupResolver:
         qname = request.q.qname
         if qname.matchGlob(self.zone):
             key = (
-                self.keymaker(request, handler) if self.keymaker
+                self.keymaker(request, handler, self.storage) if self.keymaker
                 else str(qname)
             )
             storage_result = self.storage.get(key)
