@@ -54,5 +54,5 @@ class ConsulStorage(BaseStorage):
 
     def get(self, key, default=None):
         index, data = self.consul.kv.get(self.key_prefix + key)
-        value = data['Value']
+        value = data['Value'] if data else None
         return value.decode("utf-8") if value else default
