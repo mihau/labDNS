@@ -49,7 +49,7 @@ class ConsulStorage(BaseStorage):
         self.consul = consul.Consul(**self.config)
 
     def _configure(self, config):
-        self.key_prefix = config.pop('key_prefix', None)
+        self.key_prefix = config.pop('key_prefix', '')
         self.config.update(config)
 
     def get(self, key, default=None):
