@@ -18,7 +18,9 @@ setup(
     packages=['labDNS'],
 
     include_package_data=True,
-    install_requires=[],
+    install_requires=[
+        'dnslib==0.9.7',
+    ],
     zip_safe=False,
 
     license="BSD",
