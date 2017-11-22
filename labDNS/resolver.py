@@ -5,18 +5,21 @@ from dnslib import RR, QTYPE, A, DNSRecord, RCODE
 
 class DatabaseLookupResolver:
     def __init__(self, storage, zone, keymaker=None, ttl=60, upstream=None,
-                 processor=None):
+                 processor=None, bypass=None):
         self.storage = storage
         self.zone = zone
         self.keymaker = keymaker
         self.ttl = ttl
         self.upstream = upstream
         self.processor = processor
+        self.bypass = bypass or []
 
     def resolve(self, request, handler):
         reply = request.reply()
         qname = request.q.qname
-        if qname.matchGlob(self.zone):
+        if any([qname.matchGlob(pattern) for pattern in self.bypass]):
+            pass
+        elif qname.matchGlob(self.zone):
             key = (
                 self.keymaker(request, handler, self.storage) if self.keymaker
                 else str(qname)
@@ -37,8 +40,7 @@ class DatabaseLookupResolver:
                     proxy_r = request.send(
                         self.upstream, port=53, timeout=60
                     )
-                else:
-                    proxy_r = request.send(
+                else: proxy_r = request.send(
                         self.upstream, port=53, tcp=True, timeout=60
                     )
                 reply = DNSRecord.parse(proxy_r)
@@ -73,6 +75,7 @@ def main():
     parser.add_argument("--keymaker", "-k", default=None)
     parser.add_argument("--processor", default=None)
     parser.add_argument("--upstream", "-u", default=None)
+    parser.add_argument("--bypass", "-b", default=[], nargs='+')
 
     args = parser.parse_args()
 
@@ -97,6 +100,7 @@ def main():
         keymaker=keymaker,
         upstream=args.upstream,
         processor=processor,
+        exceptions=args.bypass,
     )
     logger = DNSLogger(args.log)
 
