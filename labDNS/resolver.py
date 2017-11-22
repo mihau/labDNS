@@ -100,7 +100,7 @@ def main():
         keymaker=keymaker,
         upstream=args.upstream,
         processor=processor,
-        exceptions=args.bypass,
+        bypass=args.bypass,
     )
     logger = DNSLogger(args.log)
 
