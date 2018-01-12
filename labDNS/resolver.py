@@ -1,4 +1,5 @@
 import socket
+from pydoc import locate
 
 from dnslib import RR, QTYPE, A, DNSRecord, RCODE
 
@@ -57,14 +58,12 @@ def main():
 
     from dnslib.server import DNSLogger, DNSServer
 
-    from labDNS.storages import RedisStorage, ConsulStorage, DictStorage
-
     parser = argparse.ArgumentParser(
         description="Database lookup based DNS resolver"
     )
 
     parser.add_argument(
-        "--storage", "-s", default='dict', choices=['redis', 'consul', 'dict']
+        "--storage", "-s", default='labDNS.storages.DictStorage'
     )
     parser.add_argument("--config", "-c", type=json.loads, default=dict())
     parser.add_argument("--zone", "-z")
@@ -81,12 +80,8 @@ def main():
 
     config = args.config
 
-    if args.storage == 'redis':
-        storage = RedisStorage(config)
-    elif args.storage == 'consul':
-        storage = ConsulStorage(config)
-    elif args.storage == 'dict':
-        storage = DictStorage(config)
+    Storage = locate(args.storage)
+    storage = Storage(config)
 
     keymaker = import_module(args.keymaker).keymaker if args.keymaker else None
     processor = (
