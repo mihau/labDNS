@@ -15,7 +15,7 @@ setup(
     author_email='michalszymanski91@gmail.com',
     description='Simple DNS server for testing purposes.',  # noqa
 
-    packages=['labDNS'],
+    packages=['labDNS', 'labDNS.keymakers', 'labDNS.processors'],
 
     include_package_data=True,
     install_requires=[
